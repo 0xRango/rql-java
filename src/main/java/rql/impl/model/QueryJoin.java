@@ -5,24 +5,15 @@ import java.util.List;
 
 public class QueryJoin extends QueryStatement {
 
-	private QuerySelect primary;
-	private String alias;
+	private QueryStatement primary;
 	private List<QueryJoinOn> joins = new ArrayList<QueryJoinOn>();
 
-	public QuerySelect getPrimary() {
+	public QueryStatement getPrimary() {
 		return primary;
 	}
 
-	public void setPrimary(QuerySelect primary) {
+	public void setPrimary(QueryStatement primary) {
 		this.primary = primary;
-	}
-
-	public String getAlias() {
-		return alias;
-	}
-
-	public void setAlias(String alias) {
-		this.alias = alias;
 	}
 
 	public List<QueryJoinOn> getJoins() {

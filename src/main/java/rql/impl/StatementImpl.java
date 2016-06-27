@@ -21,6 +21,7 @@ import rql.impl.model.ResourceAlias;
 import rql.impl.model.ResourceModel;
 import rql.impl.model.SendStatement;
 import rql.impl.model.StatementModel;
+import rql.impl.model.SubQuery;
 import rx.Observable;
 import rx.exceptions.Exceptions;
 import rx.functions.Func1;
@@ -95,11 +96,13 @@ public class StatementImpl implements Statement {
 
 		QueryStatement stmt = model.getQueryStatement();
 		if (stmt instanceof QuerySelect) {
-			return createSelectStatementObservable(context, (QuerySelect) stmt);
+			return createSelectStatementObservable(context, (QuerySelect) stmt, false);
 		} else if (stmt instanceof QueryUnion) {
 			return createUnionStatementObservable(context, (QueryUnion) stmt);
 		} else if (stmt instanceof QueryJoin) {
 			return createJoinStatementObservable(context, (QueryJoin) stmt);
+		} else if (stmt instanceof SubQuery) {
+			return createSubQueryStatementObservable(context, (SubQuery) stmt);
 		}
 		if (model.getSendStatement() != null) {
 			return createSendStatementObservable(context, model);
@@ -118,12 +121,31 @@ public class StatementImpl implements Statement {
 		return Observable.just(null);
 	}
 
+	private Observable<SelectResponse> createQueryStatementObservable(StatementContext context, QueryStatement stmt,
+			boolean forceSelectAll) {
+		if (stmt instanceof QuerySelect)
+			return createSelectStatementObservable(context, (QuerySelect) stmt, forceSelectAll);
+		if (stmt instanceof SubQuery)
+			return createSubQueryStatementObservable(context, (SubQuery) stmt);
+		return null;
+	}
+
+	private Observable<SelectResponse> createSubQueryStatementObservable(StatementContext context, SubQuery stmt) {
+		Observable<SelectResponse> queryObservable = createSelectStatementObservable(context, stmt.getSelect(), false);
+		return queryObservable.map(resp -> {
+			SelectResponse selectResp = new SelectResponse(resp);
+			selectResp.setFields(stmt.getFields());
+			selectResp.setResultAlias(stmt.getAlias());
+			return selectResp;
+		});
+	}
+
 	private Observable<JoinResponse> createJoinStatementObservable(StatementContext context, QueryJoin join)
 			throws RQLException {
 
 		JoinResponse joinResponse = new JoinResponse();
 
-		return createSelectStatementObservable(context, join.getPrimary(), true).flatMap(resp -> {
+		return createQueryStatementObservable(context, join.getPrimary(), true).flatMap(resp -> {
 			joinResponse.setPrimaryResponse(join.getPrimary().getAlias(), resp);
 			return Observable.just(joinResponse);
 		}).flatMap(resp -> {
@@ -204,15 +226,15 @@ public class StatementImpl implements Statement {
 
 	private Observable<UnionResponse> createUnionStatementObservable(StatementContext context, QueryUnion union) {
 		Observable<SelectResponse> unionObservable = null;
-		for (QuerySelect select : union.getSelects()) {
+		for (QueryStatement select : union.getSelects()) {
 			if (unionObservable == null) {
-				unionObservable = createSelectStatementObservable(context, select).flatMap(response -> {
+				unionObservable = createQueryStatementObservable(context, select, false).flatMap(response -> {
 					response.setResultAlias(select.getAlias());
 					return Observable.just(response);
 				});
 			} else {
 				unionObservable = unionObservable.mergeWith(
-						unionObservable = createSelectStatementObservable(context, select).flatMap(response -> {
+						unionObservable = createQueryStatementObservable(context, select, false).flatMap(response -> {
 							response.setResultAlias(select.getAlias());
 							return Observable.just(response);
 						}));
@@ -224,10 +246,6 @@ public class StatementImpl implements Statement {
 				unionResponse.addResponse(select.getResultAlias(), select);
 			return Observable.just(unionResponse);
 		});
-	}
-
-	private Observable<SelectResponse> createSelectStatementObservable(StatementContext context, QuerySelect select) {
-		return createSelectStatementObservable(context, select, false);
 	}
 
 	private Observable<SelectResponse> createSelectStatementObservable(StatementContext context, QuerySelect select,

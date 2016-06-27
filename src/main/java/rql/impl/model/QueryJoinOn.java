@@ -6,7 +6,6 @@ import java.util.List;
 public class QueryJoinOn extends QueryStatement {
 
 	private ResourceModel resource;
-	private String alias;
 	private List<AssignmentExpression> conditions = new ArrayList<AssignmentExpression>();
 
 	public ResourceModel getResource() {
@@ -15,14 +14,6 @@ public class QueryJoinOn extends QueryStatement {
 
 	public void setResource(ResourceModel resource) {
 		this.resource = resource;
-	}
-
-	public String getAlias() {
-		return alias;
-	}
-
-	public void setAlias(String alias) {
-		this.alias = alias;
 	}
 
 	public List<AssignmentExpression> getConditions() {

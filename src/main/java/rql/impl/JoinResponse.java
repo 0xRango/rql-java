@@ -8,9 +8,10 @@ import java.util.stream.Collectors;
 
 import javax.ws.rs.core.MultivaluedMap;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import rql.RQLException;
 import rql.Response;
-import rql.impl.SelectResponse.Entry;
 import rql.impl.model.QueryField;
 
 class JoinResponse implements Response {
@@ -90,7 +91,7 @@ class JoinResponse implements Response {
 				Map<String, Object> joinFilteredValue = primaryResponse.getFields().stream().filter(field -> {
 					return alias.equals(field.getResource()) && join.containsKey(field.getField());
 				}).map(field -> {
-					return new Entry(field.getAlias() != null ? field.getAlias() : field.getField(),
+					return Pair.of(field.getAlias() != null ? field.getAlias() : field.getField(),
 							join.get(field.getField()));
 				}).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
 				filteredValue.putAll(joinFilteredValue);

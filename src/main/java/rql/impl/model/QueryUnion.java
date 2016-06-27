@@ -5,9 +5,9 @@ import java.util.List;
 
 public class QueryUnion extends QueryStatement {
 
-	private List<QuerySelect> selects = new ArrayList<QuerySelect>();
+	private List<QueryStatement> selects = new ArrayList<QueryStatement>();
 
-	public List<QuerySelect> getSelects() {
+	public List<QueryStatement> getSelects() {
 		return selects;
 	}
 

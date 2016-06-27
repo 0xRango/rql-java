@@ -167,6 +167,21 @@ public class RqlTest extends JerseyTest {
 	}
 
 	@Test
+	public void testSubQuery() throws RQLException {
+		String rql = "select * from (select a from <GET http://127.0.0.1:8080/simple-map>)";
+		RQLResponse resp = exec(rql);
+		Map result = resp.getEntity(Map.class);
+		Assert.assertEquals("a", result.get("a"));
+		Assert.assertEquals(null, result.get("b"));
+
+		rql = "select a from (select a from <GET http://127.0.0.1:8080/simple-map>)";
+		resp = exec(rql);
+		result = resp.getEntity(Map.class);
+		Assert.assertEquals("a", result.get("a"));
+
+	}
+
+	@Test
 	public void testMultipleStatements() throws RQLException {
 		String rql = "select * from <GET http://127.0.0.1:8080/simple-map>;\n"
 				+ "select * from <GET http://127.0.0.1:8080/simple-map>";
@@ -228,7 +243,7 @@ public class RqlTest extends JerseyTest {
 	public void unionTest() throws RQLException {
 		String rql = "select * from <GET http://127.0.0.1:8080/simple-map> as r1\n"
 				+ "union select a from <GET http://127.0.0.1:8080/simple-map> as r2\n"
-				+ "union select a from <GET http://127.0.0.1:8080/simple-map>";
+				+ "union select a from (select * from <GET http://127.0.0.1:8080/simple-map>)";
 		RQLResponse resp = exec(rql);
 		Map result = resp.getEntity(HashMap.class);
 		Assert.assertEquals("a", ((Map) result.get("r1")).get("a"));

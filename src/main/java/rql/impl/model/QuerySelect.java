@@ -11,8 +11,6 @@ public class QuerySelect extends QueryStatement {
 
 	private String resourceAlias;
 	
-	private String alias;
-
 	public ResourceModel getResource() {
 		return resource;
 	}
@@ -33,12 +31,5 @@ public class QuerySelect extends QueryStatement {
 		return fields;
 	}
 
-	public String getAlias() {
-		return alias;
-	}
-
-	public void setAlias(String alias) {
-		this.alias = alias;
-	}
 
 }

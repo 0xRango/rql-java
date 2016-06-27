@@ -33,12 +33,12 @@ class UnionResponse implements Response {
 	}
 
 	@Override
-	public <T> List<T> getEntityAsList(Class<T> type) throws RQLException{
+	public <T> List<T> getEntityAsList(Class<T> type) throws RQLException {
 		throw new RuntimeException("Union Response does not support GenericType entity");
 	}
 
 	@Override
-	public <T> T getEntity(Class<T> type) throws RQLException{
+	public <T> T getEntity(Class<T> type) throws RQLException {
 		Map<String, Object> entity = getEntityAsMap();
 		if (type == String.class) {
 			try {
@@ -56,20 +56,32 @@ class UnionResponse implements Response {
 	}
 
 	@Override
-	public Map<String, Object> getEntityAsMap() throws RQLException{
+	public Map<String, Object> getEntityAsMap() throws RQLException {
 		Map<String, Object> map = new HashMap<>();
 		for (SelectResponse resp : this.selects.keySet()) {
+			Object value = null;
+			boolean valueIsMap = false;
+			try {
+				value = resp.getEntityAsMap();
+				valueIsMap = true;
+			} catch (Exception e) {
+				value = resp.getEntityAsListMap();
+			}
 			if (this.selects.get(resp) != null) {
-				map.put(this.selects.get(resp), resp.getEntityAsMap());
+				map.put(this.selects.get(resp), value);
 			} else {
-				map.putAll(resp.getEntityAsMap());
+				if (valueIsMap)
+					map.putAll((Map<String, Object>) value);
+				else
+					// create random key for list value
+					map.put(value.hashCode() + "", value);
 			}
 		}
 		return map;
 	}
 
 	@Override
-	public List<Map<String, Object>> getEntityAsListMap() throws RQLException{
+	public List<Map<String, Object>> getEntityAsListMap() throws RQLException {
 		throw new RuntimeException("Union Response does not support List entity");
 	}
 

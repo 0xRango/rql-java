@@ -16,6 +16,7 @@ import rql.antlr.RQLParser.NameContext;
 import rql.antlr.RQLParser.OperandContext;
 import rql.antlr.RQLParser.Resource_nameContext;
 import rql.antlr.RQLParser.RightContext;
+import rql.antlr.RQLParser.SubqueryContext;
 import rql.antlr.RQLParser.VariableContext;
 import rql.impl.model.AssignmentExpression;
 import rql.impl.model.QueryField;
@@ -27,6 +28,7 @@ import rql.impl.model.ResourceAlias;
 import rql.impl.model.ResourceModel;
 import rql.impl.model.SendStatement;
 import rql.impl.model.StatementModel;
+import rql.impl.model.SubQuery;
 
 class StatementParser extends RQLBaseListener {
 
@@ -49,6 +51,8 @@ class StatementParser extends RQLBaseListener {
 	private QueryJoinOn joinOn;
 
 	private QueryField queryField;
+
+	private SubQuery subQuery;
 
 	@Override
 	public void enterStatement(RQLParser.StatementContext ctx) {
@@ -106,7 +110,9 @@ class StatementParser extends RQLBaseListener {
 
 	@Override
 	public void exitSelect(RQLParser.SelectContext ctx) {
-		if (queryUnion != null) {
+		if (subQuery != null) {
+			subQuery.setSelect(querySelect);
+		} else if (queryUnion != null) {
 			queryUnion.getSelects().add(querySelect);
 		} else if (queryJoin != null) {
 			queryJoin.setPrimary(querySelect);
@@ -140,7 +146,10 @@ class StatementParser extends RQLBaseListener {
 		queryField.setResource(resource);
 		queryField.setField(name);
 		queryField.setAll(name.equals("*"));
-		querySelect.getFields().add(queryField);
+		if (querySelect != null)
+			querySelect.getFields().add(queryField);
+		else if (subQuery != null)
+			subQuery.getFields().add(queryField);
 		queryField = null;
 	}
 
@@ -166,6 +175,8 @@ class StatementParser extends RQLBaseListener {
 			joinOn.setAlias(name);
 		} else if (queryJoin != null) {
 			queryJoin.getPrimary().setAlias(name);
+		} else if (subQuery != null) {
+			subQuery.setAlias(name);
 		}
 	}
 
@@ -277,6 +288,23 @@ class StatementParser extends RQLBaseListener {
 			expr.setValue(variable.VALUE().getText());
 		}
 		return expr;
+	}
+
+	@Override
+	public void enterSubquery(SubqueryContext ctx) {
+		this.subQuery = new SubQuery();
+	}
+
+	@Override
+	public void exitSubquery(SubqueryContext ctx) {
+		if (queryUnion != null) {
+			queryUnion.getSelects().add(subQuery);
+		} else if (queryJoin != null) {
+			queryJoin.setPrimary(subQuery);
+		} else {
+			statement.setQueryStatement(subQuery);
+		}
+		this.subQuery = null;
 	}
 
 	@Override

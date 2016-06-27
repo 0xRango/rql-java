@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 
 import javax.ws.rs.core.MultivaluedMap;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import rql.RQLException;
@@ -15,31 +17,7 @@ import rql.Response;
 import rql.impl.model.QueryField;
 
 class SelectResponse implements Response {
-	public static class Entry {
-		private String key;
-		private Object value;
 
-		public Entry(String key, Object value) {
-			this.setKey(key);
-			this.setValue(value);
-		}
-
-		public String getKey() {
-			return key;
-		}
-
-		public void setKey(String key) {
-			this.key = key;
-		}
-
-		public Object getValue() {
-			return value;
-		}
-
-		public void setValue(Object value) {
-			this.value = value;
-		}
-	}
 
 	private Response response;
 	private List<QueryField> fields;
@@ -143,7 +121,7 @@ class SelectResponse implements Response {
 			return fields.stream().filter(field -> {
 				return result.containsKey(field.getField());
 			}).map(field -> {
-				return new Entry(field.getAlias() != null ? field.getAlias() : field.getField(),
+				return Pair.of(field.getAlias() != null ? field.getAlias() : field.getField(),
 						result.get(field.getField()));
 			}).collect(Collectors.toMap(e -> {
 				return e.getKey();
@@ -162,7 +140,7 @@ class SelectResponse implements Response {
 				return fields.stream().filter(field -> {
 					return row.containsKey(field.getField());
 				}).map(field -> {
-					return new Entry(field.getAlias() != null ? field.getAlias() : field.getField(),
+					return Pair.of(field.getAlias() != null ? field.getAlias() : field.getField(),
 							row.get(field.getField()));
 				}).collect(Collectors.toMap(e -> {
 					return e.getKey();
