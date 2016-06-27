@@ -1,6 +1,5 @@
 package rql.impl;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,35 +26,6 @@ import rx.exceptions.Exceptions;
 import rx.functions.Func1;
 
 public class StatementImpl implements Statement {
-
-	private static class ResponseWrapper {
-		private String alias;
-		private List<? extends Map> list;
-
-		public ResponseWrapper() {
-		}
-
-		public ResponseWrapper(String alias, List<? extends Map> list) {
-			this.setAlias(alias);
-			this.setList(list);
-		}
-
-		public String getAlias() {
-			return alias;
-		}
-
-		public void setAlias(String alias) {
-			this.alias = alias;
-		}
-
-		public List<? extends Map> getList() {
-			return list;
-		}
-
-		public void setList(List<? extends Map> list) {
-			this.list = list;
-		}
-	}
 
 	private List<StatementModel> statements;
 	private RequestExecutor executor;
@@ -157,7 +127,7 @@ public class StatementImpl implements Statement {
 			joinResponse.setPrimaryResponse(join.getPrimary().getAlias(), resp);
 			return Observable.just(joinResponse);
 		}).flatMap(resp -> {
-			Observable<ResponseWrapper> joinObservable = null;
+			Observable<Pair<String, List<Map<String, Object>>>> joinObservable = null;
 			try {
 				for (QueryJoinOn joinOn : join.getJoins()) {
 					String operand = null;
@@ -167,13 +137,13 @@ public class StatementImpl implements Statement {
 						else if (!operand.equals(condition.getOperand()))
 							throw Exceptions.propagate(new RQLException("Join condition must use one operand"));
 					}
-					Observable<ResponseWrapper> joinResult = null;
-					List<HashMap> primaryResult = resp.getEntityAsList(HashMap.class);
+					Observable<Pair<String, List<Map<String, Object>>>> joinResult = null;
+					List<Map<String, Object>> primaryResult = resp.getEntityAsListMap();
 					if ("=".equals(operand)) {
 						// if operand is '=', create separated resource query
 						Observable<Pair<Response, Integer>> subResponse = Observable.empty();
 						int i = 0;
-						for (HashMap row : primaryResult) {
+						for (Map<String, Object> row : primaryResult) {
 							StatementContext subContext = context.extend();
 							for (AssignmentExpression condition : joinOn.getConditions()) {
 								String primaryField = condition.getValue().split("\\.")[1];
@@ -188,7 +158,7 @@ public class StatementImpl implements Statement {
 									}));
 						}
 						joinResult = subResponse.buffer(primaryResult.size()).flatMap(resps -> {
-							return Observable.just(new ResponseWrapper(joinOn.getAlias(), resps.stream()
+							return Observable.just(Pair.of(joinOn.getAlias(), resps.stream()
 									.sorted((e1, e2) -> Integer.compare(e1.getValue(), e2.getValue())).map(r -> {
 										try {
 											return r.getKey().getEntityAsMap();
@@ -199,7 +169,7 @@ public class StatementImpl implements Statement {
 						});
 					} else {
 						StatementContext subContext = context.extend();
-						for (HashMap row : primaryResult) {
+						for (Map<String, Object> row : primaryResult) {
 							for (AssignmentExpression condition : joinOn.getConditions()) {
 								String primaryField = condition.getValue().split("\\.")[1];
 								String joinField = condition.getName().split("\\.")[1];
@@ -209,8 +179,7 @@ public class StatementImpl implements Statement {
 						subContext.setAutoPopulateParams(true);
 						joinResult = createResourceObservable(subContext, joinOn.getResource()).flatMap(response -> {
 							try {
-								return Observable
-										.just(new ResponseWrapper(joinOn.getAlias(), response.getEntityAsListMap()));
+								return Observable.just(Pair.of(joinOn.getAlias(), response.getEntityAsListMap()));
 							} catch (Exception e) {
 								throw Exceptions.propagate(new RQLException(e));
 							}
@@ -227,8 +196,8 @@ public class StatementImpl implements Statement {
 			}
 			return joinObservable.buffer(join.getJoins().size());
 		}).flatMap(joins -> {
-			for (ResponseWrapper r : joins)
-				joinResponse.addResponse(r.getAlias(), r.getList());
+			for (Pair<String, List<Map<String, Object>>> r : joins)
+				joinResponse.addResponse(r.getLeft(), r.getRight());
 			return Observable.just(joinResponse);
 		});
 	}
