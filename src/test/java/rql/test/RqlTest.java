@@ -6,8 +6,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -25,12 +27,25 @@ import rql.RQLClient;
 import rql.RQLException;
 import rql.RQLResponse;
 import rql.Statement;
+import rql.test.RqlTest.TestResource.Domain;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class RqlTest extends JerseyTest {
 
 	@Path("")
 	public static class TestResource {
+
+		public static class Domain {
+			public int id = 1;
+			public String name = "root";
+		}
+
+		@GET
+		@Path("simple-object")
+		public Domain simpleObject() {
+			return new Domain();
+		}
+
 		@GET
 		@Path("simple-map")
 		public Map simpleMap() {
@@ -49,10 +64,10 @@ public class RqlTest extends JerseyTest {
 		@GET
 		@Path("name")
 		public Map queryName(@QueryParam("id") String id) {
-//			try {
-//				Thread.sleep(35000);
-//			} catch (InterruptedException e) {
-//			}
+			// try {
+			// Thread.sleep(35000);
+			// } catch (InterruptedException e) {
+			// }
 			Map map = new HashMap();
 			map.put(id, id);
 			map.put("name", id + "'s Name");
@@ -92,6 +107,16 @@ public class RqlTest extends JerseyTest {
 			return response;
 
 		}
+
+		@POST
+		@Consumes("application/json")
+		@Path("test-post")
+		public Map testPost(Map params) {
+			Map a = new HashMap();
+			a.put("a", params.get("a"));
+			return a;
+
+		}
 	}
 
 	private RQLClient client = RQLClient.getDefault();
@@ -113,6 +138,15 @@ public class RqlTest extends JerseyTest {
 	}
 
 	@Test
+	public void testSimpleObject() throws RQLException {
+		String rql = "select id, name from <GET http://127.0.0.1:8080/simple-object>";
+		RQLResponse resp = exec(rql);
+		Domain domain = resp.getEntity(Domain.class);
+		Assert.assertEquals(1, domain.id);
+		Assert.assertEquals("root", domain.name);
+	}
+
+	@Test
 	public void testSimpleMap() throws RQLException {
 		String rql = "select * from <GET http://127.0.0.1:8080/simple-map>";
 		RQLResponse resp = exec(rql);
@@ -130,6 +164,19 @@ public class RqlTest extends JerseyTest {
 		result = resp.getEntity(Map.class);
 		Assert.assertEquals("a", result.get("b"));
 		Assert.assertNull(result.get("a"));
+	}
+
+	@Test
+	public void testMultipleStatements() throws RQLException {
+		String rql = "select * from <GET http://127.0.0.1:8080/simple-map>;\n"
+				+ "select * from <GET http://127.0.0.1:8080/simple-map>";
+		RQLResponse resp = exec(rql);
+		Map result = resp.getEntity(Map.class);
+		Assert.assertEquals("a", result.get("a"));
+		Assert.assertEquals("b", result.get("b"));
+		result = resp.getEntity(Map.class, 1);
+		Assert.assertEquals("a", result.get("a"));
+		Assert.assertEquals("b", result.get("b"));
 	}
 
 	@Test
@@ -212,4 +259,13 @@ public class RqlTest extends JerseyTest {
 		Assert.assertEquals("a1's Name", result.get(0).get("name"));
 	}
 
+
+	@Test
+	public void testPost() throws RQLException {
+		String rql = "Parameter data: '{\"a\":\"a\"}'\n"
+				+ "select * from <POST http://127.0.0.1:8080/test-post :data>";
+		RQLResponse resp = exec(rql);
+		Map result = resp.getEntity(HashMap.class);
+		Assert.assertEquals("a", result.get("a"));
+	}
 }

@@ -25,7 +25,6 @@ import rql.impl.model.StatementModel;
 import rx.Observable;
 import rx.exceptions.Exceptions;
 import rx.functions.Func1;
-import rx.functions.Func2;
 
 public class StatementImpl implements Statement {
 
@@ -33,9 +32,9 @@ public class StatementImpl implements Statement {
 		private String alias;
 		private List<? extends Map> list;
 
-		public ResponseWrapper(){
+		public ResponseWrapper() {
 		}
-		
+
 		public ResponseWrapper(String alias, List<? extends Map> list) {
 			this.setAlias(alias);
 			this.setList(list);
@@ -80,23 +79,27 @@ public class StatementImpl implements Statement {
 
 	@Override
 	public RQLResponse execute() throws RQLException {
-		Observable<RQLResponse> observable = Observable.just(new RQLResponseImpl());
+		Observable<Response> stmtObervable = createStatementsObservable();
+		return stmtObervable.buffer(statements.size()).flatMap(resps -> {
+			RQLResponseImpl result = new RQLResponseImpl();
+			for (Response resp : resps) {
+				result.addResponse(resp);
+			}
+			return Observable.just(result);
+		}).toBlocking().first();
+	}
+
+	private Observable<Response> createStatementsObservable() throws RQLException {
+		Observable<Response> stmtObervable = null;
 		for (StatementModel stmt : statements) {
 			StatementContext context = rootContext.extend();
-			Observable<? extends Response> stmtObervable = createStatementObservable(context, stmt);
-			if (stmtObervable != null) {
-				observable = observable.zipWith(stmtObervable, new Func2<RQLResponse, Response, RQLResponse>() {
-
-					@Override
-					public RQLResponse call(RQLResponse t1, Response t2) {
-						((RQLResponseImpl) t1).addResponse(t2);
-						return t1;
-					}
-				});
+			if (stmtObervable == null) {
+				stmtObervable = (Observable<Response>) createStatementObservable(context, stmt);
+			} else {
+				stmtObervable = stmtObervable.mergeWith(stmtObervable);
 			}
 		}
-		return observable.toBlocking().first();
-
+		return stmtObervable;
 	}
 
 	private Observable<? extends Response> createStatementObservable(StatementContext context, StatementModel model)

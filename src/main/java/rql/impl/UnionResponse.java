@@ -1,16 +1,12 @@
 package rql.impl;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.MultivaluedMap;
 
-import org.apache.commons.beanutils.BeanUtils;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import rql.RQLException;
 import rql.Response;
@@ -45,10 +41,9 @@ class UnionResponse implements Response {
 	public <T> T getEntity(Class<T> type) throws RQLException{
 		Map<String, Object> entity = getEntityAsMap();
 		if (type == String.class) {
-			ObjectMapper mapper = new ObjectMapper();
 			try {
 				long start = System.currentTimeMillis();
-				T result = (T) mapper.writeValueAsString(entity);
+				T result = (T) Utils.getObjectMapper().writeValueAsString(entity);
 				System.out.println("Convert ellapsed: " + (System.currentTimeMillis() - start));
 				return result;
 			} catch (JsonProcessingException e) {
@@ -57,16 +52,7 @@ class UnionResponse implements Response {
 			}
 		}
 
-		try {
-			Object result = type.newInstance();
-			BeanUtils.populate(result, entity);
-			return (T) result;
-		} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return null;
+		return Utils.getObjectMapper().convertValue(entity, type);
 	}
 
 	@Override

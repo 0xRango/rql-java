@@ -8,8 +8,6 @@ import java.util.stream.Collectors;
 
 import javax.ws.rs.core.MultivaluedMap;
 
-import org.apache.commons.beanutils.BeanUtils;
-
 import rql.RQLException;
 import rql.Response;
 import rql.impl.SelectResponse.Entry;
@@ -49,15 +47,7 @@ class JoinResponse implements Response {
 	public <T> List<T> getEntityAsList(Class<T> type) throws RQLException {
 		List<Map<String, Object>> mergedResult = getEntityAsListMap();
 		return mergedResult.stream().map(map -> {
-			T result = null;
-			try {
-				result = type.newInstance();
-				BeanUtils.populate(result, map);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			return result;
+			return Utils.getObjectMapper().convertValue(map, type);
 		}).collect(Collectors.toList());
 	}
 

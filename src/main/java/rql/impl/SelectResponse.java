@@ -1,6 +1,5 @@
 package rql.impl;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -9,10 +8,7 @@ import java.util.stream.Collectors;
 
 import javax.ws.rs.core.MultivaluedMap;
 
-import org.apache.commons.beanutils.BeanUtils;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import rql.RQLException;
 import rql.Response;
@@ -120,9 +116,8 @@ class SelectResponse implements Response {
 		// do object mapping
 
 		if (type == String.class) {
-			ObjectMapper mapper = new ObjectMapper();
 			try {
-				T result = (T) mapper.writeValueAsString(entity);
+				T result = (T) Utils.getObjectMapper().writeValueAsString(entity);
 				return result;
 			} catch (JsonProcessingException e) {
 				// TODO Auto-generated catch block
@@ -130,16 +125,7 @@ class SelectResponse implements Response {
 			}
 		}
 
-		try {
-			Object result = type.newInstance();
-			final Map<String, Object> value = (Map<String, Object>) entity;
-			BeanUtils.populate(result, value);
-		} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		return (T) entity;
+		return Utils.getObjectMapper().convertValue(entity, type);
 	}
 
 	@Override
