@@ -1,6 +1,6 @@
 # rql-java
 
-[![Release](https://jitpack.io/v/chenyuejie/rql-java.svg)](https://jitpack.io/#chenyuejie/rql-java)
+[![Build Status](https://travis-ci.org/chenyuejie/rql-java.png)](https://travis-ci.org/chenyuejie/rql-java)
 
 **RQL** 是个类似于SQL的Web资源查询语言, 使用RQL可以通过一条语句, 并行地查询多个Web资源, 并且返回过滤, 转换或者合并的结果. 你可以把RQL当做一个简单, 高效的http client, 也可以用它来构建 [BFF](http://samnewman.io/patterns/architectural/bff/) 应用, 简化你的开发.
 
@@ -53,17 +53,19 @@ You can get more examples from the JUnit test.
 
 Maven pom.xml
 
-    <repositories>
-      <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-      </repository>
-    </repositories>
+    <repository>
+      <id>ossrh</id>
+      <name>Sonatype OSSRH</name>
+      <url>https://oss.sonatype.org/content/groups/public/</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
 
     <dependency>
       <groupId>com.github.chenyuejie</groupId>
       <artifactId>rql-java</artifactId>
-      <version>-SNAPSHOT</version>
+      <version>1.0.0-SNAPSHOT</version>
     </dependency>
 
 Code snippet
